@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>トリプルサンド（7×7）</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", sans-serif;
+      background: #f4f6f9;
+      color: #1f2937;
+      margin: 0;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.6rem;
+    }
+    .rule-note {
+      max-width: 660px;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: #4b5563;
+      background: #ffffff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .legend-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: #5b21b6;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+    .legend-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      background: #ede9fe;
+      border: 2px solid #8b5cf6;
+    }
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      width: 100%;
+      max-width: 660px;
+    }
+    .option-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .option-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+      margin-right: 2px;
+    }
+    .pill-btn {
+      padding: 6px 13px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      border: 2px solid #cbd5e1;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .pill-btn.active {
+      border-color: #0f172a;
+      background: #0f172a;
+      color: #ffffff;
+    }
+    .pill-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: #ffffff;
+      padding: 12px 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      margin-bottom: 14px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      min-height: 48px;
+      text-align: center;
+    }
+    .piece-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .piece-btn {
+      font-size: 1.2rem;
+      font-weight: 700;
+      padding: 8px 24px;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .piece-btn.active.maru {
+      border-color: #2563eb;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .piece-btn.active.batsu {
+      border-color: #dc2626;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .piece-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(7, 50px);
+      grid-template-rows: repeat(7, 50px);
+      gap: 6px;
+      background: #334155;
+      padding: 10px;
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.15);
+    }
+    .cell {
+      width: 50px;
+      height: 50px;
+      border: none;
+      border-radius: 8px;
+      background: #ffffff;
+      font-size: 1.55rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cell:hover:not(:disabled) {
+      background: #f1f5f9;
+      transform: scale(1.03);
+    }
+    .cell.flipped {
+      background: #ede9fe;
+      box-shadow: inset 0 0 0 2px #8b5cf6;
+    }
+    .cell.flippable:hover:not(:disabled) {
+      background: #fef9c3;
+      box-shadow: inset 0 0 0 2px #ca8a04;
+    }
+    .cell:disabled {
+      cursor: default;
+    }
+    .cell.maru {
+      color: #2563eb;
+    }
+    .cell.batsu {
+      color: #dc2626;
+    }
+    .cell.win {
+      background: #fef08a;
+      box-shadow: inset 0 0 0 3px #eab308;
+    }
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .action-btn {
+      padding: 9px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      background: #1e293b;
+      color: #ffffff;
+      cursor: pointer;
+    }
+    .action-btn:hover:not(:disabled) {
+      background: #0f172a;
+    }
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .action-btn.secondary {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    .action-btn.secondary:hover:not(:disabled) {
+      background: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <h1>トリプルサンド（7×7）</h1>
+  <div class="rule-note">
+    <strong>【基本ルール】</strong> 7×7のマスに交互に「○」か「×」を置きます。縦・横・斜めの連続する3マスで、先に <strong>○×○</strong> または <strong>×○×</strong> を作った方の勝ちです。<br />
+    <strong>【反転ルール（反転ありの時）】</strong> 自分のターンで空いているマスに置くかわりに、まだ反転していない <strong>○ をクリックすると × に</strong>、<strong>× をクリックすると ○ に反転</strong>させることもできます（1手として消費）。<strong>反転は1マスにつき1回まで</strong>で、一度反転したマスは再反転できません。<br />
+    <span class="legend-inline"><span class="legend-swatch"></span> この色のマスは反転済み（再反転不可）</span>
+  </div>
+
+  <div class="controls-panel">
+    <div class="option-row">
+      <span class="option-label">対戦：</span>
+      <button type="button" class="pill-btn active" id="modePvP" onclick="setGameMode('pvp')">2人対戦</button>
+      <button type="button" class="pill-btn" id="modeAiFirst" onclick="setGameMode('ai_first')">AI対戦（あなた先行）</button>
+      <button type="button" class="pill-btn" id="modeAiSecond" onclick="setGameMode('ai_second')">AI対戦（あなた後攻）</button>
+    </div>
+
+    <div class="option-row">
+      <span class="option-label">AIの強さ：</span>
+      <button type="button" class="pill-btn" id="aiWeak" onclick="setAiLevel('weak')">よわい</button>
+      <button type="button" class="pill-btn active" id="aiNormal" onclick="setAiLevel('normal')">ふつう</button>
+      <button type="button" class="pill-btn" id="aiStrong" onclick="setAiLevel('strong')">つよい</button>
+    </div>
+
+    <div class="option-row">
+      <span class="option-label">反転：</span>
+      <button type="button" class="pill-btn active" id="flipOn" onclick="setFlipEnabled(true)">反転あり</button>
+      <button type="button" class="pill-btn" id="flipOff" onclick="setFlipEnabled(false)">反転なし</button>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar">先行（プレイヤー1）の番です</div>
+
+  <div class="piece-selector">
+    <button type="button" class="piece-btn maru active" id="selectMaru" onclick="choosePiece('○')">○ を置く</button>
+    <button type="button" class="piece-btn batsu" id="selectBatsu" onclick="choosePiece('×')">× を置く</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="actions">
+    <button type="button" class="action-btn secondary" onclick="undoMove()">1手戻す</button>
+    <button type="button" class="action-btn" onclick="resetGame()">リセット</button>
+  </div>
+
+  <script>
+    const SIZE = 7;
+    const CENTER_INDEX = Math.floor(SIZE / 2);
+    const MAX_CENTER_DIST = CENTER_INDEX * 2;
+    const WIN_PATTERNS = ["○×○", "×○×"];
+    const DIRECTIONS = [
+      [0, 1],   // 横
+      [1, 0],   // 縦
+      [1, 1],   // 斜め右下
+      [1, -1]   // 斜め左下
+    ];
+
+    const DEFAULT_AI_WEIGHTS = {
+      first: {
+        immediateLossPenalty: 10000,
+        setupWeight: 2.478,
+        opponentThreatPenalty: 4.187,
+        flipPenalty: 1.237,
+        centerWeight: 1.172,
+        doubleThreatBase: 2233,
+        doubleThreatPerWin: 201
+      },
+      second: {
+        immediateLossPenalty: 10000,
+        setupWeight: 3.141,
+        opponentThreatPenalty: 2.668,
+        flipPenalty: 0.749,
+        centerWeight: 0.972,
+        doubleThreatBase: 2460,
+        doubleThreatPerWin: 201
+      }
+    };
+
+    let gameMode = "pvp";
+    let aiLevel = "normal";
+    let flipEnabled = true;
+
+    let board = createEmptyBoard();
+    let flippedCells = new Set();
+    let currentPlayer = 1;
+    let selectedPiece = "○";
+    let winner = null;
+    let winningCells = new Set();
+    let history = [];
+    let aiTimer = null;
+
+    function createEmptyBoard() {
+      return Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+    }
+
+    function clearAiTimer() {
+      if (aiTimer) {
+        clearTimeout(aiTimer);
+        aiTimer = null;
+      }
+    }
+
+    function isAiTurn() {
+      if (winner) return false;
+      if (gameMode === "ai_first" && currentPlayer === 2) return true;
+      if (gameMode === "ai_second" && currentPlayer === 1) return true;
+      return false;
+    }
+
+    function canFlipCellOn(targetFlippedSet, r, c, val, useFlip = flipEnabled) {
+      if (!useFlip || val === null) return false;
+      return !targetFlippedSet.has(`${r},${c}`);
+    }
+
+    function canFlipCell(r, c, val) {
+      return canFlipCellOn(flippedCells, r, c, val, flipEnabled);
+    }
+
+    function updateControlButtons() {
+      document.getElementById("modePvP").classList.toggle("active", gameMode === "pvp");
+      document.getElementById("modeAiFirst").classList.toggle("active", gameMode === "ai_first");
+      document.getElementById("modeAiSecond").classList.toggle("active", gameMode === "ai_second");
+
+      document.getElementById("aiWeak").classList.toggle("active", aiLevel === "weak");
+      document.getElementById("aiNormal").classList.toggle("active", aiLevel === "normal");
+      document.getElementById("aiStrong").classList.toggle("active", aiLevel === "strong");
+
+      const aiStrengthDisabled = gameMode === "pvp";
+      document.getElementById("aiWeak").disabled = aiStrengthDisabled;
+      document.getElementById("aiNormal").disabled = aiStrengthDisabled;
+      document.getElementById("aiStrong").disabled = aiStrengthDisabled;
+
+      document.getElementById("flipOn").classList.toggle("active", flipEnabled === true);
+      document.getElementById("flipOff").classList.toggle("active", flipEnabled === false);
+    }
+
+    function setGameMode(mode) {
+      gameMode = mode;
+      updateControlButtons();
+      resetGame();
+    }
+
+    function setAiLevel(level) {
+      aiLevel = level;
+      updateControlButtons();
+      if (isAiTurn()) {
+        scheduleAiIfNeeded();
+      }
+    }
+
+    function setFlipEnabled(enabled) {
+      flipEnabled = enabled;
+      updateControlButtons();
+      resetGame();
+    }
+
+    function choosePiece(piece) {
+      if (winner || isAiTurn()) return;
+      selectedPiece = piece;
+      updatePieceButtons();
+    }
+
+    function updatePieceButtons() {
+      const disabled = Boolean(winner) || isAiTurn();
+      const maruBtn = document.getElementById("selectMaru");
+      const batsuBtn = document.getElementById("selectBatsu");
+      maruBtn.disabled = disabled;
+      batsuBtn.disabled = disabled;
+      maruBtn.classList.toggle("active", selectedPiece === "○");
+      batsuBtn.classList.toggle("active", selectedPiece === "×");
+    }
+
+    function findWinningCellsOn(targetBoard) {
+      const found = new Set();
+
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          for (const [dr, dc] of DIRECTIONS) {
+            const r1 = r + dr, c1 = c + dc;
+            const r2 = r + dr * 2, c2 = c + dc * 2;
+
+            if (r2 >= 0 && r2 < SIZE && c2 >= 0 && c2 < SIZE) {
+              const a = targetBoard[r][c];
+              const b = targetBoard[r1][c1];
+              const d = targetBoard[r2][c2];
+              if (a && b && d) {
+                const seq = `${a}${b}${d}`;
+                if (WIN_PATTERNS.includes(seq)) {
+                  found.add(`${r},${c}`);
+                  found.add(`${r1},${c1}`);
+                  found.add(`${r2},${c2}`);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return found;
+    }
+
+    function isBoardFullOn(targetBoard) {
+      return targetBoard.every(row => row.every(cell => cell !== null));
+    }
+
+    function applyMove(r, c, nextValue, isFlip = false) {
+      if (winner) return;
+      const currentVal = board[r][c];
+      const cellKey = `${r},${c}`;
+
+      if (currentVal === null && !isFlip && (nextValue === "○" || nextValue === "×")) {
+        // 配置 OK
+      } else if (isFlip && canFlipCell(r, c, currentVal) && nextValue === (currentVal === "○" ? "×" : "○")) {
+        // 反転 OK
+      } else {
+        return;
+      }
+
+      history.push({
+        board: board.map(row => [...row]),
+        flippedCells: new Set(flippedCells),
+        currentPlayer,
+        selectedPiece,
+        actor: currentPlayer
+      });
+
+      board[r][c] = nextValue;
+      if (isFlip) {
+        flippedCells.add(cellKey);
+      }
+
+      const matched = findWinningCellsOn(board);
+      if (matched.size > 0) {
+        winner = currentPlayer;
+        winningCells = matched;
+      } else if (isBoardFullOn(board)) {
+        winner = "draw";
+      } else {
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        selectedPiece = "○";
+      }
+
+      render();
+      scheduleAiIfNeeded();
+    }
+
+    function handleCellClick(r, c) {
+      if (winner || isAiTurn()) return;
+      const currentVal = board[r][c];
+
+      if (currentVal === null) {
+        applyMove(r, c, selectedPiece, false);
+      } else if (canFlipCell(r, c, currentVal)) {
+        const flipped = currentVal === "○" ? "×" : "○";
+        applyMove(r, c, flipped, true);
+      }
+    }
+
+    function getCandidateMovesOn(targetBoard, targetFlippedSet, useFlip = flipEnabled) {
+      const moves = [];
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          const val = targetBoard[r][c];
+          if (val === null) {
+            moves.push({ r, c, nextValue: "○", isFlip: false });
+            moves.push({ r, c, nextValue: "×", isFlip: false });
+          } else if (canFlipCellOn(targetFlippedSet, r, c, val, useFlip)) {
+            moves.push({ r, c, nextValue: val === "○" ? "×" : "○", isFlip: true });
+          }
+        }
+      }
+      return moves;
+    }
+
+    function countImmediateWinningMoves(targetBoard, targetFlippedSet, useFlip = flipEnabled) {
+      let winCount = 0;
+      const nextMoves = getCandidateMovesOn(targetBoard, targetFlippedSet, useFlip);
+
+      for (const m of nextMoves) {
+        const prev = targetBoard[m.r][m.c];
+        targetBoard[m.r][m.c] = m.nextValue;
+        const won = findWinningCellsOn(targetBoard).size > 0;
+        targetBoard[m.r][m.c] = prev;
+        if (won) {
+          winCount++;
+        }
+      }
+      return winCount;
+    }
+
+    function evaluateBoardPatterns(targetBoard, targetFlippedSet, useFlip = flipEnabled) {
+      let ownPotential = 0;
+      let threatPotential = 0;
+      const pieces = ["○", "×"];
+
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          for (const [dr, dc] of DIRECTIONS) {
+            const r1 = r + dr, c1 = c + dc;
+            const r2 = r + dr * 2, c2 = c + dc * 2;
+
+            if (r2 >= 0 && r2 < SIZE && c2 >= 0 && c2 < SIZE) {
+              const coords = [[r, c], [r1, c1], [r2, c2]];
+              const cells = coords.map(([rr, cc]) => targetBoard[rr][cc]);
+              const emptyCount = cells.filter(x => x === null).length;
+
+              if (emptyCount === 1) {
+                let winWays = 0;
+                for (const p of pieces) {
+                  const testCells = cells.map(x => (x === null ? p : x));
+                  if (WIN_PATTERNS.includes(testCells.join(""))) {
+                    winWays++;
+                  }
+                }
+                if (winWays > 0) {
+                  ownPotential += 2 * winWays;
+                  threatPotential += 1.5 * winWays;
+                }
+              }
+
+              if (useFlip && emptyCount === 0) {
+                let flipWays = 0;
+                for (let idx = 0; idx < 3; idx++) {
+                  const [rr, cc] = coords[idx];
+                  if (!targetFlippedSet.has(`${rr},${cc}`)) {
+                    const testCells = [...cells];
+                    testCells[idx] = testCells[idx] === "○" ? "×" : "○";
+                    if (WIN_PATTERNS.includes(testCells.join(""))) {
+                      flipWays++;
+                    }
+                  }
+                }
+                if (flipWays > 0) {
+                  ownPotential += 3 * flipWays;
+                  threatPotential += 2.2 * flipWays;
+                }
+              }
+            }
+          }
+        }
+      }
+      return { ownPotential, threatPotential };
+    }
+
+    function getActiveStrongWeightsForTurn(turn) {
+      return turn === 1 ? DEFAULT_AI_WEIGHTS.first : DEFAULT_AI_WEIGHTS.second;
+    }
+
+    function chooseAiMove() {
+      const moves = getCandidateMovesOn(board, flippedCells, flipEnabled);
+      if (moves.length === 0) return null;
+
+      const isEmptyBoard = board.every(row => row.every(cell => cell === null));
+      if (isEmptyBoard && aiLevel !== "weak") {
+        return { r: CENTER_INDEX, c: CENTER_INDEX, nextValue: "○", isFlip: false };
+      }
+
+      const winningMoves = moves.filter(m => {
+        const nextBoard = board.map(row => [...row]);
+        nextBoard[m.r][m.c] = m.nextValue;
+        return findWinningCellsOn(nextBoard).size > 0;
+      });
+
+      if (winningMoves.length > 0) {
+        if (aiLevel !== "weak" || Math.random() < 0.5) {
+          return winningMoves[Math.floor(Math.random() * winningMoves.length)];
+        }
+      }
+
+      if (aiLevel === "weak") {
+        return moves[Math.floor(Math.random() * moves.length)];
+      }
+
+      const weights = getActiveStrongWeightsForTurn(currentPlayer);
+      let bestScore = -Infinity;
+      let bestCandidates = [];
+
+      const isStrong = aiLevel === "strong";
+      const immediateLossPenalty = isStrong ? weights.immediateLossPenalty : 180;
+      const setupWeight = isStrong ? weights.setupWeight : 2;
+      const threatPenalty = isStrong ? weights.opponentThreatPenalty : 1.5;
+      const flipPenalty = isStrong ? weights.flipPenalty : 2.5;
+      const centerWeight = isStrong ? weights.centerWeight : 1.4;
+      const noiseRange = isStrong ? 0.5 : 16;
+
+      for (const m of moves) {
+        const nextBoard = board.map(row => [...row]);
+        nextBoard[m.r][m.c] = m.nextValue;
+
+        const nextFlippedSet = new Set(flippedCells);
+        if (m.isFlip) {
+          nextFlippedSet.add(`${m.r},${m.c}`);
+        }
+
+        let score = 0;
+
+        const opponentImmediateWins = countImmediateWinningMoves(nextBoard, nextFlippedSet, flipEnabled);
+        score -= opponentImmediateWins * immediateLossPenalty;
+
+        if (isStrong && opponentImmediateWins === 0) {
+          const oppMoves = getCandidateMovesOn(nextBoard, nextFlippedSet, flipEnabled);
+          let worstCaseMyWinsAfterOpp = Infinity;
+
+          const sampledOppMoves = oppMoves.length > 28
+            ? oppMoves.filter((_, i) => i % 2 === 0)
+            : oppMoves;
+
+          for (const om of sampledOppMoves) {
+            const prevVal = nextBoard[om.r][om.c];
+            nextBoard[om.r][om.c] = om.nextValue;
+            const omKey = `${om.r},${om.c}`;
+            const hadFlip = nextFlippedSet.has(omKey);
+            if (om.isFlip) nextFlippedSet.add(omKey);
+
+            const myFollowupWins = countImmediateWinningMoves(nextBoard, nextFlippedSet, flipEnabled);
+            if (myFollowupWins < worstCaseMyWinsAfterOpp) {
+              worstCaseMyWinsAfterOpp = myFollowupWins;
+            }
+
+            nextBoard[om.r][om.c] = prevVal;
+            if (om.isFlip && !hadFlip) nextFlippedSet.delete(omKey);
+          }
+
+          if (worstCaseMyWinsAfterOpp !== Infinity && worstCaseMyWinsAfterOpp > 0) {
+            score += weights.doubleThreatBase + worstCaseMyWinsAfterOpp * weights.doubleThreatPerWin;
+          }
+        }
+
+        const { ownPotential, threatPotential } = evaluateBoardPatterns(nextBoard, nextFlippedSet, flipEnabled);
+        score += ownPotential * setupWeight;
+        score -= threatPotential * threatPenalty;
+
+        if (m.isFlip) {
+          score -= flipPenalty;
+        }
+
+        const centerDist = Math.abs(m.r - CENTER_INDEX) + Math.abs(m.c - CENTER_INDEX);
+        score += (MAX_CENTER_DIST - centerDist) * centerWeight;
+
+        score += Math.random() * noiseRange;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestCandidates = [m];
+        } else if (Math.abs(score - bestScore) < 1e-6) {
+          bestCandidates.push(m);
+        }
+      }
+
+      return bestCandidates[Math.floor(Math.random() * bestCandidates.length)];
+    }
+
+    function scheduleAiIfNeeded() {
+      clearAiTimer();
+      if (!isAiTurn()) return;
+
+      aiTimer = setTimeout(() => {
+        if (!isAiTurn()) return;
+        const move = chooseAiMove();
+        if (move) {
+          applyMove(move.r, move.c, move.nextValue, move.isFlip);
+        }
+      }, 350);
+    }
+
+    function restoreHistoryEntry(entry) {
+      board = entry.board;
+      flippedCells = new Set(entry.flippedCells || []);
+      currentPlayer = entry.currentPlayer;
+      selectedPiece = entry.selectedPiece;
+    }
+
+    function undoMove() {
+      if (history.length === 0) return;
+      clearAiTimer();
+
+      if (gameMode === "pvp") {
+        const prev = history.pop();
+        restoreHistoryEntry(prev);
+      } else {
+        const humanPlayerNum = gameMode === "ai_first" ? 1 : 2;
+        while (history.length > 0) {
+          const prev = history.pop();
+          restoreHistoryEntry(prev);
+          if (prev.actor === humanPlayerNum) {
+            break;
+          }
+        }
+      }
+
+      winner = null;
+      winningCells = new Set();
+      render();
+      scheduleAiIfNeeded();
+    }
+
+    function resetGame() {
+      clearAiTimer();
+      board = createEmptyBoard();
+      flippedCells = new Set();
+      currentPlayer = 1;
+      selectedPiece = "○";
+      winner = null;
+      winningCells = new Set();
+      history = [];
+      render();
+      scheduleAiIfNeeded();
+    }
+
+    function getPlayerLabel(playerNum) {
+      if (gameMode === "ai_first") {
+        return playerNum === 1 ? "あなた（先行）" : "AI（後攻）";
+      }
+      if (gameMode === "ai_second") {
+        return playerNum === 1 ? "AI（先行）" : "あなた（後攻）";
+      }
+      return playerNum === 1 ? "先行（プレイヤー1）" : "後攻（プレイヤー2）";
+    }
+
+    function render() {
+      updateControlButtons();
+
+      const statusBar = document.getElementById("statusBar");
+      if (winner === 1 || winner === 2) {
+        statusBar.textContent = `🎉 ${getPlayerLabel(winner)} の勝利！`;
+      } else if (winner === "draw") {
+        statusBar.textContent = "引き分けです！";
+      } else if (isAiTurn()) {
+        statusBar.textContent = `${getPlayerLabel(currentPlayer)} が考えています…`;
+      } else {
+        const flipHint = flipEnabled ? "・未反転コマはクリックで1回だけ反転可" : "";
+        statusBar.textContent = `${getPlayerLabel(currentPlayer)} の番です（置くコマ：${selectedPiece}${flipHint}）`;
+      }
+
+      updatePieceButtons();
+
+      const boardEl = document.getElementById("board");
+      boardEl.innerHTML = "";
+
+      const canInteract = !winner && !isAiTurn();
+
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          const val = board[r][c];
+          const cellKey = `${r},${c}`;
+          const isAlreadyFlipped = flippedCells.has(cellKey);
+          const isFlippableCell = canInteract && val !== null && canFlipCell(r, c, val);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cell";
+          if (val === "○") btn.classList.add("maru");
+          if (val === "×") btn.classList.add("batsu");
+          if (isAlreadyFlipped) {
+            btn.classList.add("flipped");
+            btn.title = "反転済み（再反転はできません）";
+          }
+          if (isFlippableCell) {
+            btn.classList.add("flippable");
+            btn.title = val === "○" ? "クリックで × に反転（1回のみ）" : "クリックで ○ に反転（1回のみ）";
+          }
+          if (winningCells.has(cellKey)) {
+            btn.classList.add("win");
+          }
+
+          btn.textContent = val || "";
+          btn.disabled = !canInteract || (val !== null && !isFlippableCell);
+          btn.addEventListener("click", () => handleCellClick(r, c));
+          boardEl.appendChild(btn);
+        }
+      }
+    }
+
+    render();
+    scheduleAiIfNeeded();
+  </script>
+</body>
+</html>
